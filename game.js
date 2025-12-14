@@ -2181,7 +2181,12 @@ function initInventoryScreen() {
         return b.zone - a.zone;
     });
     
-    inventoryGrid.innerHTML = filteredItems.map(item => createItemCard(item)).join('');
+    // Limpiar grid y agregar items con event listeners
+    inventoryGrid.innerHTML = '';
+    filteredItems.forEach(item => {
+        const card = createItemCard(item);
+        inventoryGrid.appendChild(card);
+    });
     
     // Configurar event listeners para filtros si no están configurados
     setupInventoryFilters();
