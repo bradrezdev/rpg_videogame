@@ -105,6 +105,17 @@ const FIGHTER_AVATARS = {
 };
 
 /**
+ * Configuración de invocaciones
+ */
+const SUMMON_CONFIG = {
+    wolf: { name: 'Lobo Espiritual', icon: '🐺', stats: { str: 1.2, agi: 1.5, res: 0.8, int: 0.5 } },
+    golem: { name: 'Gólem de Piedra', icon: '🗿', stats: { str: 1.5, agi: 0.5, res: 2.0, int: 0.5 } },
+    spirit: { name: 'Espíritu Vengativo', icon: '👻', stats: { str: 0.5, agi: 1.2, res: 0.8, int: 1.8 } },
+    dragon: { name: 'Dragón Ancestral', icon: '🐉', stats: { str: 2.0, agi: 1.2, res: 1.5, int: 2.0 } },
+    undead: { name: 'Guerrero Esqueleto', icon: '💀', stats: { str: 1.0, agi: 1.0, res: 0.8, int: 0.5 } }
+};
+
+/**
  * Experiencia requerida por nivel de cuenta
  */
 const ACCOUNT_EXP_TABLE = [];
@@ -3045,6 +3056,9 @@ function createBattleFighter(fighter, team) {
         level: fighter.level,
         team: team,
         isBoss: fighter.isBoss || false,
+        isSummon: fighter.isSummon || false,
+        summonType: fighter.summonType || null,
+        summonerId: fighter.summonerId || null,
         
         // Stats base
         stats: { ...fighter.stats },
@@ -3164,27 +3178,31 @@ function generateBoss(zoneNum) {
  * Renderiza los equipos en la UI de batalla
  */
 function renderBattleTeams() {
-    // Equipo del jugador
-    battleState.playerTeam.forEach((fighter, index) => {
-        const slot = document.getElementById(`player-slot-${index + 1}`);
-        slot.innerHTML = createBattleFighterHTML(fighter);
-    });
+    const playerContainer = document.getElementById('player-team-container');
+    const enemyContainer = document.getElementById('enemy-team-container');
     
-    // Limpiar slots vacíos del jugador
-    for (let i = battleState.playerTeam.length; i < 3; i++) {
-        document.getElementById(`player-slot-${i + 1}`).innerHTML = '';
-    }
+    playerContainer.innerHTML = '';
+    enemyContainer.innerHTML = '';
+    
+    // Equipo del jugador
+    battleState.playerTeam.forEach((fighter) => {
+        const slot = document.createElement('div');
+        slot.className = 'fighter-battle-slot';
+        slot.dataset.fighterId = fighter.id;
+        if (fighter.isSummon) slot.classList.add('summon-slot');
+        slot.innerHTML = createBattleFighterHTML(fighter);
+        playerContainer.appendChild(slot);
+    });
     
     // Equipo enemigo
-    battleState.enemyTeam.forEach((fighter, index) => {
-        const slot = document.getElementById(`enemy-slot-${index + 1}`);
+    battleState.enemyTeam.forEach((fighter) => {
+        const slot = document.createElement('div');
+        slot.className = 'fighter-battle-slot';
+        slot.dataset.fighterId = fighter.id;
+        if (fighter.isSummon) slot.classList.add('summon-slot');
         slot.innerHTML = createBattleFighterHTML(fighter);
+        enemyContainer.appendChild(slot);
     });
-    
-    // Limpiar slots vacíos del enemigo
-    for (let i = battleState.enemyTeam.length; i < 3; i++) {
-        document.getElementById(`enemy-slot-${i + 1}`).innerHTML = '';
-    }
 }
 
 /**
@@ -3193,15 +3211,25 @@ function renderBattleTeams() {
  * @returns {string} HTML del peleador
  */
 function createBattleFighterHTML(fighter) {
-    const avatar = FIGHTER_AVATARS[fighter.gender][fighter.class];
+    let avatar, className;
+    
+    if (fighter.isSummon) {
+        const config = SUMMON_CONFIG[fighter.summonType];
+        avatar = config ? config.icon : '❓';
+        className = config ? config.name : 'Invocación';
+    } else {
+        avatar = FIGHTER_AVATARS[fighter.gender][fighter.class];
+        className = `Nv.${fighter.level} ${CLASSES[fighter.class].name}`;
+    }
+    
     const hpPercent = (fighter.hp / fighter.maxHp) * 100;
     const actionPercent = fighter.actionBar;
     
     return `
-        <div class="battle-fighter" data-fighter-id="${fighter.id}">
+        <div class="battle-fighter ${fighter.isSummon ? 'summon' : ''}" data-fighter-id="${fighter.id}">
             <span class="battle-fighter-avatar">${avatar}</span>
             <span class="battle-fighter-name">${fighter.name}</span>
-            <span class="battle-fighter-class">Nv.${fighter.level} ${CLASSES[fighter.class].name}</span>
+            <span class="battle-fighter-class">${className}</span>
             <div class="battle-bars">
                 <div class="bar-container">
                     <span class="bar-label">HP</span>
@@ -3263,6 +3291,302 @@ function runBattle() {
     }, 100 / battleSpeed);
 }
 
+// ============================================
+// SISTEMA DE BATALLA - INTERACCIÓN
+// ============================================
+
+/**
+ * Reanuda la batalla
+ */
+function resumeBattle() {
+    battleState.isRunning = true;
+}
+
+/**
+ * Muestra el menú de acciones para el jugador
+ */
+function showBattleActionMenu(fighter) {
+    const menu = document.getElementById('battle-actions-menu');
+    const skillMenu = document.getElementById('skill-selection-menu');
+    const targetMsg = document.getElementById('target-selection-msg');
+    
+    // Resetear estado del menú
+    menu.classList.remove('hidden');
+    skillMenu.classList.add('hidden');
+    targetMsg.classList.add('hidden');
+    
+    // Configurar botones principales
+    document.getElementById('btn-action-attack').onclick = () => {
+        enableTargetSelection('enemy', (target) => {
+            executeAction(fighter, { type: 'attack', target: target });
+            hideBattleActionMenu();
+            resumeBattle();
+        });
+    };
+    
+    document.getElementById('btn-action-defend').onclick = () => {
+        executeAction(fighter, { type: 'defend' });
+        hideBattleActionMenu();
+        resumeBattle();
+    };
+    
+    document.getElementById('btn-action-skill').onclick = () => {
+        showSkillSelection(fighter);
+    };
+}
+
+function hideBattleActionMenu() {
+    document.getElementById('battle-actions-menu').classList.add('hidden');
+    // Limpiar selección de objetivos si estaba activa
+    document.querySelectorAll('.selectable-target').forEach(el => {
+        el.classList.remove('selectable-target', 'enemy-target', 'ally-target');
+        el.onclick = null;
+    });
+    document.getElementById('target-selection-msg').classList.add('hidden');
+}
+
+function showSkillSelection(fighter) {
+    const skillMenu = document.getElementById('skill-selection-menu');
+    const skillsGrid = document.getElementById('battle-skills-grid');
+    
+    skillMenu.classList.remove('hidden');
+    skillsGrid.innerHTML = '';
+    
+    if (!fighter.activeSkills || fighter.activeSkills.length === 0) {
+        skillsGrid.innerHTML = '<p style="color:white; font-size:0.8rem;">No hay habilidades disponibles</p>';
+        return;
+    }
+    
+    fighter.activeSkills.forEach(skill => {
+        const btn = document.createElement('div');
+        btn.className = 'battle-skill-btn';
+        btn.innerHTML = `
+            <span style="font-size: 1.5rem">${skill.icon}</span>
+            <span style="font-size: 0.8rem">${skill.name}</span>
+        `;
+        
+        btn.onclick = () => {
+            // Determinar tipo de objetivo basado en la habilidad
+            const dummyTarget = fighter; 
+            const effect = getActiveSkillEffect(skill, fighter, dummyTarget);
+            
+            let targetMode = 'enemy';
+            if (effect.heal || effect.buff || effect.shield || effect.healTarget) {
+                targetMode = 'ally';
+            }
+            
+            // Excepciones específicas
+            if (skill.id === 'revive') targetMode = 'dead_ally'; 
+            
+            enableTargetSelection(targetMode, (target) => {
+                executeAction(fighter, { type: 'skill', skill: skill, target: target });
+                hideBattleActionMenu();
+                resumeBattle();
+            });
+        };
+        
+        skillsGrid.appendChild(btn);
+    });
+    
+    document.getElementById('btn-cancel-skill').onclick = () => {
+        skillMenu.classList.add('hidden');
+    };
+}
+
+function enableTargetSelection(mode, callback) {
+    const targetMsg = document.getElementById('target-selection-msg');
+    const skillMenu = document.getElementById('skill-selection-menu');
+    
+    skillMenu.classList.add('hidden');
+    targetMsg.classList.remove('hidden');
+    
+    document.getElementById('btn-cancel-target').onclick = () => {
+        targetMsg.classList.add('hidden');
+        // Volver al menú principal
+        document.getElementById('battle-actions-menu').classList.remove('hidden');
+        // Limpiar targets
+        document.querySelectorAll('.selectable-target').forEach(el => {
+            el.classList.remove('selectable-target', 'enemy-target', 'ally-target');
+            el.onclick = null;
+        });
+    };
+    
+    let targets = [];
+    if (mode === 'enemy') {
+        targets = battleState.enemyTeam.filter(f => f.hp > 0);
+    } else if (mode === 'ally') {
+        targets = battleState.playerTeam.filter(f => f.hp > 0);
+    } else if (mode === 'dead_ally') {
+        targets = battleState.playerTeam.filter(f => f.hp <= 0);
+    }
+    
+    // Añadir clases visuales y listeners
+    targets.forEach(target => {
+        const slot = document.querySelector(`.fighter-battle-slot[data-fighter-id="${target.id}"]`);
+        if (slot) {
+            slot.classList.add('selectable-target');
+            if (mode === 'enemy') slot.classList.add('enemy-target');
+            else slot.classList.add('ally-target');
+            
+            slot.onclick = (e) => {
+                e.stopPropagation(); // Evitar clicks múltiples
+                callback(target);
+            };
+        }
+    });
+}
+
+/**
+ * Ejecuta una acción de batalla (Player o AI)
+ */
+function executeAction(attacker, action) {
+    // Resetear barra de acción
+    attacker.actionBar = 0;
+    attacker.attackCount++;
+    
+    if (action.type === 'defend') {
+        addBattleLog(`${attacker.name} se pone en guardia!`, 'skill');
+        attacker.isDefending = true;
+        updateBattleFighterUI(attacker);
+        return;
+    }
+    
+    // Si estaba defendiendo, dejar de defender al atacar
+    attacker.isDefending = false;
+    
+    const target = action.target;
+    if (!target) return; // Error safety
+    
+    const cs = attacker.combatStats;
+    const tcs = target.combatStats;
+    
+    // Pre-calcular efecto si es skill para saber si es invocación
+    let skillEffect = null;
+    if (action.type === 'skill') {
+        skillEffect = getActiveSkillEffect(action.skill, attacker, target);
+    }
+    
+    // Verificar precisión vs evasión (solo para ataques ofensivos)
+    // Excluir si es skill de curación, buff, O INVOCACIÓN
+    const isSummonSkill = skillEffect && skillEffect.summon;
+    const isSupportSkill = action.type === 'skill' && (action.skill.heal || action.skill.buff || isSummonSkill);
+    
+    if (action.type === 'attack' || (action.type === 'skill' && !isSupportSkill)) {
+        const hitChance = Math.min(95, Math.max(50, cs.accuracy - tcs.evasion));
+        const hitRoll = Math.random() * 100;
+        
+        if (hitRoll > hitChance) {
+            addBattleLog(`${attacker.name} falla su ataque contra ${target.name}!`, '');
+            return;
+        }
+    }
+    
+    if (action.type === 'attack') {
+        // Ataque básico
+        let damage = cs.physicalDamage;
+        
+        // Reducción por defensa
+        const defense = tcs.defense * (target.isDefending ? 1.5 : 1);
+        damage = Math.max(1, Math.floor(damage * (100 / (100 + defense))));
+        
+        // Crítico
+        if (Math.random() * 100 < cs.critChance) {
+            damage = Math.floor(damage * (cs.critDamage / 100));
+            addBattleLog(`¡CRÍTICO! ${attacker.name} golpea a ${target.name} por ${damage} de daño!`, 'damage');
+        } else {
+            addBattleLog(`${attacker.name} ataca a ${target.name} por ${damage} de daño.`, 'damage');
+        }
+        
+        target.hp = Math.max(0, target.hp - damage);
+        updateBattleFighterUI(target);
+        
+    } else if (action.type === 'skill') {
+        const skill = action.skill;
+        // skillEffect ya fue calculado arriba
+        
+        addBattleLog(`${skill.icon} ${attacker.name} usa ${skill.name}!`, 'skill');
+        
+        // Aplicar efectos
+        if (skillEffect.damage) {
+            let damage = skillEffect.damage;
+            // Reducción por defensa (mágica o física)
+            const defense = skillEffect.damageType === 'mágico' ? tcs.magicDefense : tcs.defense;
+            const finalDefense = defense * (target.isDefending ? 1.5 : 1);
+            
+            if (!skillEffect.armorPen) {
+                damage = Math.max(1, Math.floor(damage * (100 / (100 + finalDefense))));
+            }
+            
+            damage = Math.floor(damage);
+            target.hp = Math.max(0, target.hp - damage);
+            addBattleLog(`${target.name} recibe ${damage} de daño ${skillEffect.damageType || 'mágico'}.`, 'damage');
+            
+            // Efectos secundarios (stun, dot, etc) - Simplificado
+            if (skillEffect.stun) addBattleLog(`${target.name} está aturdido!`, 'debuff');
+        }
+        
+        if (skillEffect.heal) {
+            const healAmount = Math.floor(skillEffect.heal);
+            target.hp = Math.min(target.maxHp, target.hp + healAmount);
+            addBattleLog(`${target.name} recupera ${healAmount} HP`, 'heal');
+        }
+        
+        if (skillEffect.buff) {
+            addBattleLog(`${target.name} recibe ${skillEffect.buff.name}`, 'buff');
+        }
+        
+        // Invocaciones
+        if (skillEffect.summon) {
+            summonCreature(attacker, skillEffect.summon);
+        }
+        
+        updateBattleFighterUI(target);
+    }
+    
+    updateBattleFighterUI(attacker);
+}
+
+/**
+ * Calcula la acción de la IA
+ */
+function calculateAIAction(attacker) {
+    // Seleccionar objetivo (enemigo vivo aleatorio)
+    const targets = attacker.team === 'player' 
+        ? battleState.enemyTeam.filter(f => f.hp > 0)
+        : battleState.playerTeam.filter(f => f.hp > 0);
+    
+    if (targets.length === 0) return { type: 'wait' };
+    
+    const target = targets[Math.floor(Math.random() * targets.length)];
+    
+    // Lógica de skills vs ataque básico
+    const skillFrequency = ['tanque', 'curador', 'invocador'].includes(attacker.class) ? 3 : 4;
+    const isSpecialTurn = (attacker.attackCount + 1) % skillFrequency === 0;
+    
+    if (isSpecialTurn && attacker.activeSkills && attacker.activeSkills.length > 0) {
+        const skill = attacker.activeSkills[Math.floor(Math.random() * attacker.activeSkills.length)];
+        
+        // Determinar target correcto para el skill (aliado o enemigo)
+        const dummyEffect = getActiveSkillEffect(skill, attacker, target);
+        let skillTarget = target;
+        
+        if (dummyEffect.heal || dummyEffect.buff || dummyEffect.shield) {
+            // Buscar aliado herido
+            const allies = attacker.team === 'player' ? battleState.playerTeam : battleState.enemyTeam;
+            const injuredAllies = allies.filter(f => f.hp > 0 && f.hp < f.maxHp);
+            if (injuredAllies.length > 0) {
+                skillTarget = injuredAllies.sort((a, b) => a.hp - b.hp)[0]; // El más herido
+            } else {
+                skillTarget = attacker; // Self cast si todos están full
+            }
+        }
+        
+        return { type: 'skill', skill: skill, target: skillTarget };
+    }
+    
+    return { type: 'attack', target: target };
+}
+
 /**
  * Un tick del sistema de combate
  */
@@ -3307,147 +3631,70 @@ function battleTick() {
         
         const attacker = readyFighters[0];
         
-        performAttack(attacker);
-        attacker.actionBar = 0;
-        attacker.attackCount++;
+        // Si es un peleador del jugador (y no es una invocación automática)
+        if (attacker.team === 'player' && !attacker.isSummon) {
+            battleState.isRunning = false; // Pausar batalla
+            showBattleActionMenu(attacker);
+            return;
+        }
         
-        updateBattleFighterUI(attacker);
+        // IA (Enemigos o Invocaciones)
+        const action = calculateAIAction(attacker);
+        executeAction(attacker, action);
     }
 }
 
 /**
- * Realiza un ataque
- * @param {Object} attacker - Peleador que ataca
+ * Invoca una criatura al campo de batalla
  */
-function performAttack(attacker) {
-    // Seleccionar objetivo (enemigo vivo aleatorio)
-    const targets = attacker.team === 'player' 
-        ? battleState.enemyTeam.filter(f => f.hp > 0)
-        : battleState.playerTeam.filter(f => f.hp > 0);
+function summonCreature(summoner, summonData) {
+    const config = SUMMON_CONFIG[summonData.type];
+    if (!config) return;
+
+    // Limitar invocaciones por equipo (max 2)
+    const team = summoner.team === 'player' ? battleState.playerTeam : battleState.enemyTeam;
+    const currentSummons = team.filter(f => f.isSummon).length;
     
-    if (targets.length === 0) return;
-    
-    const target = targets[Math.floor(Math.random() * targets.length)];
-    const cs = attacker.combatStats; // Combat stats (con pasivas aplicadas)
-    const tcs = target.combatStats;  // Target combat stats
-    
-    // Verificar precisión vs evasión
-    const hitChance = Math.min(95, Math.max(50, cs.accuracy - tcs.evasion));
-    const hitRoll = Math.random() * 100;
-    
-    if (hitRoll > hitChance) {
-        addBattleLog(`${attacker.name} falla su ataque contra ${target.name}!`, '');
+    if (currentSummons >= 2) {
+        addBattleLog(`${summoner.name} intenta invocar pero ya hay demasiadas criaturas!`, 'error');
         return;
     }
+
+    const power = summonData.power || 1;
+    const level = summoner.level;
     
-    // Calcular daño base usando combatStats
-    let damage = cs.physicalDamage;
-    let damageType = 'físico';
-    let isSkillAttack = false;
-    let skillUsed = null;
+    // Calcular stats basados en el invocador
+    const stats = {
+        str: Math.floor(summoner.stats.int * 0.5 * config.stats.str * power),
+        agi: Math.floor(summoner.stats.int * 0.5 * config.stats.agi * power),
+        res: Math.floor(summoner.stats.int * 0.5 * config.stats.res * power),
+        int: Math.floor(summoner.stats.int * 0.5 * config.stats.int * power)
+    };
+
+    const summon = {
+        id: `summon_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        name: config.name,
+        class: 'summon', // Clase especial
+        summonType: summonData.type,
+        gender: 'male',
+        level: level,
+        stats: stats,
+        isSummon: true,
+        summonerId: summoner.id
+    };
+
+    const battleFighter = createBattleFighter(summon, summoner.team);
     
-    // Verificar si es ataque especial
-    // Tanques, Curadores, Invocadores: cada 3 ataques (Básico, Básico, Skill)
-    // Otros: cada 4 ataques (Básico, Básico, Básico, Skill)
-    const skillFrequency = ['tanque', 'curador', 'invocador'].includes(attacker.class) ? 3 : 4;
-    const isSpecialTurn = (attacker.attackCount + 1) % skillFrequency === 0;
+    // Añadir al equipo
+    team.push(battleFighter);
     
-    if (isSpecialTurn && attacker.activeSkills && attacker.activeSkills.length > 0) {
-        // Seleccionar una habilidad activa
-        skillUsed = attacker.activeSkills[Math.floor(Math.random() * attacker.activeSkills.length)];
-        
-        if (skillUsed) {
-            isSkillAttack = true;
-            const skillEffect = getActiveSkillEffect(skillUsed, attacker, target);
-            
-            // Aplicar efecto de la habilidad
-            if (skillEffect.damage) {
-                damage = skillEffect.damage;
-                damageType = skillEffect.damageType || 'mágico';
-            }
-            
-            if (skillEffect.heal && skillEffect.healTarget) {
-                const healAmount = Math.floor(skillEffect.heal);
-                skillEffect.healTarget.hp = Math.min(skillEffect.healTarget.maxHp, skillEffect.healTarget.hp + healAmount);
-                addBattleLog(`${skillUsed.icon} ${attacker.name} usa ${skillUsed.name}!`, 'skill');
-                addBattleLog(`${skillEffect.healTarget.name} recupera ${healAmount} HP`, 'heal');
-                updateBattleFighterUI(skillEffect.healTarget);
-                
-                // Si es solo curación, no hacer daño
-                if (!skillEffect.damage) return;
-            } else {
-                addBattleLog(`${skillUsed.icon} ${attacker.name} usa ${skillUsed.name}!`, 'skill');
-            }
-            
-            // Efectos adicionales
-            if (skillEffect.aoe) {
-                // Daño en área a todos los enemigos
-                const aoeTargets = attacker.team === 'player' 
-                    ? battleState.enemyTeam.filter(f => f.hp > 0)
-                    : battleState.playerTeam.filter(f => f.hp > 0);
-                
-                aoeTargets.forEach(aoeTarget => {
-                    if (aoeTarget.id !== target.id) {
-                        const aoeDamage = Math.floor(damage * 0.5);
-                        const finalAoeDamage = Math.max(1, aoeDamage - tcs.defense);
-                        aoeTarget.hp -= finalAoeDamage;
-                        addBattleLog(`${aoeTarget.name} recibe ${finalAoeDamage} daño en área`, 'damage');
-                        updateBattleFighterUI(aoeTarget);
-                        
-                        if (aoeTarget.hp <= 0) {
-                            addBattleLog(`${aoeTarget.name} ha sido derrotado!`, 'damage');
-                        }
-                    }
-                });
-            }
-            
-            if (skillEffect.stun) {
-                target.debuffs.push({ type: 'stun', duration: skillEffect.stun });
-                addBattleLog(`${target.name} está aturdido!`, 'skill');
-            }
-            
-            if (skillEffect.buff) {
-                attacker.buffs.push(skillEffect.buff);
-                addBattleLog(`${attacker.name} obtiene ${skillEffect.buff.name}!`, 'heal');
-            }
-        }
-    }
+    addBattleLog(`${summoner.name} invoca a ${config.name}!`, 'skill');
     
-    // Calcular crítico
-    const critRoll = Math.random() * 100;
-    const isCritical = critRoll < cs.critChance;
-    
-    if (isCritical) {
-        damage = Math.floor(damage * (cs.critDamage / 100));
-    }
-    
-    // Aplicar defensa del objetivo
-    const defense = damageType === 'mágico' ? tcs.magicDefense : tcs.defense;
-    damage = Math.max(1, Math.floor(damage - defense));
-    
-    // Aplicar daño
-    target.hp -= damage;
-    
-    // Log del daño
-    const critText = isCritical ? ' ¡CRÍTICO!' : '';
-    const attackType = isSkillAttack ? '' : ` (${damageType})`;
-    
-    if (!isSkillAttack) {
-        addBattleLog(`${attacker.name} ataca a ${target.name} por ${damage} daño${attackType}${critText}`, isCritical ? 'critical' : 'damage');
-    } else {
-        addBattleLog(`${target.name} recibe ${damage} daño${critText}`, isCritical ? 'critical' : 'damage');
-    }
-    
-    // Actualizar UI del objetivo
-    updateBattleFighterUI(target);
-    
-    if (target.hp <= 0) {
-        addBattleLog(`💀 ${target.name} ha sido derrotado!`, 'damage');
-    }
-    
-    // Marcar que ha actuado al menos una vez
-    attacker.hasActedOnce = true;
+    // Actualizar UI
+    renderBattleTeams();
 }
+
+
 
 /**
  * Obtiene el efecto de una habilidad activa

@@ -576,12 +576,8 @@
                 <!-- Campo de batalla -->
                 <div class="battlefield">
                     <!-- Equipo del jugador (izquierda) -->
-                    <div class="team team-player">
-                        <div class="fighter-battle-slot" id="player-slot-1">
-                            <!-- Contenido generado dinámicamente -->
-                        </div>
-                        <div class="fighter-battle-slot" id="player-slot-2"></div>
-                        <div class="fighter-battle-slot" id="player-slot-3"></div>
+                    <div class="team team-player" id="player-team-container">
+                        <!-- Generado dinámicamente -->
                     </div>
                     
                     <!-- Indicador VS -->
@@ -590,12 +586,8 @@
                     </div>
                     
                     <!-- Equipo enemigo (derecha) -->
-                    <div class="team team-enemy">
-                        <div class="fighter-battle-slot" id="enemy-slot-1">
-                            <!-- Contenido generado dinámicamente -->
-                        </div>
-                        <div class="fighter-battle-slot" id="enemy-slot-2"></div>
-                        <div class="fighter-battle-slot" id="enemy-slot-3"></div>
+                    <div class="team team-enemy" id="enemy-team-container">
+                        <!-- Generado dinámicamente -->
                     </div>
                 </div>
                 
@@ -614,6 +606,25 @@
                     <button class="btn-battle-action hidden" id="btn-speed">
                         ⏩ Velocidad: 1x
                     </button>
+                    
+                    <!-- Menú de Acciones de Batalla (Nuevo) -->
+                    <div id="battle-actions-menu" class="battle-actions-menu hidden">
+                        <div class="action-buttons-row">
+                            <button class="btn-action" id="btn-action-attack">⚔️ Atacar</button>
+                            <button class="btn-action" id="btn-action-skill">✨ Habilidad</button>
+                            <button class="btn-action" id="btn-action-defend">🛡️ Defender</button>
+                        </div>
+                        <div id="skill-selection-menu" class="skill-selection-menu hidden">
+                            <div class="skills-grid" id="battle-skills-grid">
+                                <!-- Skills generados dinámicamente -->
+                            </div>
+                            <button class="btn-cancel-action" id="btn-cancel-skill">🔙 Volver</button>
+                        </div>
+                        <div id="target-selection-msg" class="target-selection-msg hidden">
+                            <span class="blink">🎯 Selecciona un objetivo...</span>
+                            <button class="btn-cancel-action" id="btn-cancel-target">Cancelar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
