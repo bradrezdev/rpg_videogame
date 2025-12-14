@@ -2156,14 +2156,25 @@ function showFighterSelectionModal(item) {
     const modal = document.getElementById('modal-overlay');
     const modalContent = document.getElementById('modal-content');
     
-    // Filtrar peleadores compatibles (si es arma, verificar clase)
-    let availableFighters = gameState.fighters;
+    // Obtener solo los peleadores que están en el equipo
+    const teamFighters = gameState.team
+        .filter(id => id) // Filtrar slots vacíos
+        .map(id => gameState.fighters.find(f => f.id === id))
+        .filter(f => f); // Filtrar undefined
+    
+    if (teamFighters.length === 0) {
+        showToast('No tienes peleadores en tu equipo', 'error');
+        return;
+    }
+    
+    // Filtrar por compatibilidad (si es arma, verificar clase)
+    let availableFighters = teamFighters;
     if (item.type === 'weapon' && item.class) {
-        availableFighters = gameState.fighters.filter(f => f.class === item.class);
+        availableFighters = teamFighters.filter(f => f.class === item.class);
     }
     
     if (availableFighters.length === 0) {
-        showToast('No tienes peleadores compatibles con este item', 'error');
+        showToast('Ningún peleador de tu equipo puede usar este item', 'error');
         return;
     }
     
