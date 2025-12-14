@@ -2351,6 +2351,9 @@ function openEquipModal(itemId) {
         <button class="btn-secondary" style="width: 100%;" onclick="closeModal()">Cancelar</button>
     `;
     
+    // IMPORTANTE: Usar remove('hidden') porque la clase tiene !important
+    modal.classList.remove('hidden');
+    // Asegurar que el display sea flex por si acaso se modificó inline
     modal.style.display = 'flex';
 }
 
@@ -2397,17 +2400,22 @@ function selectFighterForEquip(fighterId) {
         // Para armas, usar lógica de clase
         const itemName = item.subtype ? item.subtype.toLowerCase() : '';
         
-        if (['asesino', 'hechicero', 'invocador'].includes(fighter.class)) {
-            if (!fighter.equipment.mainhand) {
-                slot = 'mainhand';
-            } else if (!fighter.equipment.offhand && (itemName.includes('daga') || itemName.includes('espada'))) {
-                slot = 'offhand';
-            } else if (!fighter.equipment.mainhand) {
-                slot = 'mainhand';
-            }
-        } else {
-            if (!fighter.equipment.mainhand) {
-                slot = 'mainhand';
+        // Por defecto va a la mano principal
+        slot = 'mainhand';
+        
+        // Lógica para mano secundaria (offhand)
+        // 1. Si es un escudo, va a offhand (a menos que sea la única arma, pero generalmente es offhand)
+        if (item.subtype === 'Escudo') {
+            slot = 'offhand';
+        }
+        // 2. Si es Asesino, Hechicero o Invocador, pueden usar dual wield (dagas/espadas/libros)
+        else if (['asesino', 'hechicero', 'invocador'].includes(fighter.class)) {
+            // Si la mano principal está ocupada Y la secundaria vacía
+            if (fighter.equipment.mainhand && !fighter.equipment.offhand) {
+                // Y el item es compatible con offhand (daga, espada, libro)
+                if (itemName.includes('daga') || itemName.includes('espada') || itemName.includes('libro')) {
+                    slot = 'offhand';
+                }
             }
         }
     }
@@ -2419,15 +2427,34 @@ function selectFighterForEquip(fighterId) {
     
     // Verificar si hay algo equipado
     if (Array.isArray(fighter.equipment[slot])) {
-        // Slot múltiple
+        // Slot múltiple (accesorios como anillos)
         const maxSlots = EQUIPMENT_SLOTS[slot] ? EQUIPMENT_SLOTS[slot].max : 3;
-        if (fighter.equipment[slot].length >= maxSlots) {
-            showToast(`Ya tienes ${maxSlots} items en este slot`, 'error');
+        
+        // Si hay espacio, equipar directamente
+        if (fighter.equipment[slot].length < maxSlots) {
+            doEquipItem(itemId, fighterId, slot, false);
             return;
         }
-        // fighter.equipment[slot].push(item.id); // Removed premature push
+        
+        // Si está lleno, preguntar qué reemplazar
+        // Para simplificar, reemplazamos el primero o mostramos un selector (aquí reemplazamos el primero por ahora)
+        // O mejor, mostramos un modal para elegir cuál reemplazar si es posible, pero por simplicidad:
+        const currentItemId = fighter.equipment[slot][0];
+        const currentItem = gameState.inventory.find(i => i.id === currentItemId);
+        const slotName = EQUIPMENT_SLOTS[slot] ? EQUIPMENT_SLOTS[slot].name : slot;
+        
+        showModal(
+            'Reemplazar Equipo',
+            `<p>Los slots de ${slotName} están llenos.</p><p>¿Deseas reemplazar <strong>${currentItem ? currentItem.name : 'un item'}</strong>?</p>`,
+            [
+                { text: 'Cancelar', action: 'closeModal()' },
+                { text: 'Reemplazar', class: 'btn-primary', action: `doEquipItem('${itemId}', '${fighterId}', '${slot}', true)` }
+            ]
+        );
+        return;
+        
     } else if (fighter.equipment[slot]) {
-        // Slot ocupado, preguntar si reemplazar
+        // Slot único ocupado, preguntar si reemplazar
         const currentItemId = fighter.equipment[slot];
         const currentItem = gameState.inventory.find(i => i.id === currentItemId);
         
@@ -2447,9 +2474,6 @@ function selectFighterForEquip(fighterId) {
         doEquipItem(itemId, fighterId, slot, false);
         return;
     }
-    
-    // Para slots múltiples sin espacio completo
-    doEquipItem(itemId, fighterId, slot, false);
 }
 
 /**
@@ -2462,12 +2486,22 @@ function doEquipItem(itemId, fighterId, slot, replacing) {
     if (!item || !fighter) return;
     
     // Si reemplazamos, desequipar el anterior
-    if (replacing && fighter.equipment[slot]) {
-        const oldItemId = fighter.equipment[slot];
-        const oldItem = gameState.inventory.find(i => i.id === oldItemId);
-        if (oldItem) {
-            oldItem.equipped = false;
-            oldItem.equippedBy = null;
+    if (replacing) {
+        if (Array.isArray(fighter.equipment[slot])) {
+            // En slots múltiples, quitamos el primero (FIFO) para hacer espacio
+            const oldItemId = fighter.equipment[slot].shift();
+            const oldItem = gameState.inventory.find(i => i.id === oldItemId);
+            if (oldItem) {
+                oldItem.equipped = false;
+                oldItem.equippedBy = null;
+            }
+        } else if (fighter.equipment[slot]) {
+            const oldItemId = fighter.equipment[slot];
+            const oldItem = gameState.inventory.find(i => i.id === oldItemId);
+            if (oldItem) {
+                oldItem.equipped = false;
+                oldItem.equippedBy = null;
+            }
         }
     }
     
