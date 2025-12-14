@@ -2126,12 +2126,22 @@ function createItemCard(item) {
                 <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">Zona ${item.zone}</p>
             </div>
             ${!item.equipped ? `
-                <button class="btn-secondary btn-small" onclick="equipItem('${item.id}')">
+                <button class="btn-secondary btn-small btn-equip-item" data-item-id="${item.id}">
                     Equipar
                 </button>
             ` : ''}
         </div>
     `;
+    
+    // Agregar event listener al botón de equipar
+    if (!item.equipped) {
+        const equipBtn = card.querySelector('.btn-equip-item');
+        if (equipBtn) {
+            equipBtn.addEventListener('click', () => {
+                equipItem(item.id);
+            });
+        }
+    }
     
     return card;
 }
