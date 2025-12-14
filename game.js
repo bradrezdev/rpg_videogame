@@ -326,22 +326,25 @@ const ITEM_PREFIXES = {
  * Niveles donde se desbloquean habilidades
  */
 const SKILL_UNLOCK_LEVELS = {
-    active1: 5,
-    active1_lv2: 8,
-    passive1: 11,
-    passive1_lv2: 15,
-    active1_lv3: 20,
-    passive2: 25,
-    passive1_lv3: 27,
-    passive2_lv2: 29,
-    active2: 30,
-    passive3: 33,
-    passive2_lv3: 35,
-    active3: 40,
-    passive3_lv2: 43,
-    active2_lv2: 45,
-    passive3_lv3: 49,
-    active3_lv3: 50
+    active1: 2,
+    active2: 10,
+    active3: 20,
+    active4: 35,
+    
+    passive1: 5,
+    passive2: 15,
+    passive3: 25,
+    passive4: 40,
+    
+    active1_lv2: 8, active1_lv3: 18,
+    active2_lv2: 18, active2_lv3: 28,
+    active3_lv2: 28, active3_lv3: 38,
+    active4_lv2: 42, active4_lv3: 48,
+    
+    passive1_lv2: 12, passive1_lv3: 22,
+    passive2_lv2: 22, passive2_lv3: 32,
+    passive3_lv2: 32, passive3_lv3: 42,
+    passive4_lv2: 45, passive4_lv3: 50
 };
 
 /**
@@ -1345,9 +1348,10 @@ function initFighterDetailScreen() {
     activeSkillsContainer.innerHTML = '';
     
     const activeUnlockLevels = [
-        { level: 5, maxTier: 3, tierLevels: [5, 8, 20] },
-        { level: 30, maxTier: 2, tierLevels: [30, 45] },
-        { level: 40, maxTier: 3, tierLevels: [40, 45, 50] }
+        { level: SKILL_UNLOCK_LEVELS.active1, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.active1, SKILL_UNLOCK_LEVELS.active1_lv2, SKILL_UNLOCK_LEVELS.active1_lv3] },
+        { level: SKILL_UNLOCK_LEVELS.active2, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.active2, SKILL_UNLOCK_LEVELS.active2_lv2, SKILL_UNLOCK_LEVELS.active2_lv3] },
+        { level: SKILL_UNLOCK_LEVELS.active3, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.active3, SKILL_UNLOCK_LEVELS.active3_lv2, SKILL_UNLOCK_LEVELS.active3_lv3] },
+        { level: SKILL_UNLOCK_LEVELS.active4, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.active4, SKILL_UNLOCK_LEVELS.active4_lv2, SKILL_UNLOCK_LEVELS.active4_lv3] }
     ];
     
     activeUnlockLevels.forEach((config, index) => {
@@ -1359,7 +1363,10 @@ function initFighterDetailScreen() {
             const tierInfo = getTierInfo(skill.tier, config.maxTier);
             
             card.innerHTML = `
-                <div class="skill-icon-large">
+                <div class="skill-icon-large skill-tooltip-trigger" 
+                     data-tooltip-title="${skill.name}" 
+                     data-tooltip-desc="${skill.description}"
+                     data-tooltip-meta="Tier ${skill.tier}/${config.maxTier} • Nv.${config.level}">
                     ${skill.icon}
                     <span class="skill-tier-badge">${skill.tier}</span>
                 </div>
@@ -1400,9 +1407,10 @@ function initFighterDetailScreen() {
     passiveSkillsContainer.innerHTML = '';
     
     const passiveUnlockLevels = [
-        { level: 11, maxTier: 3, tierLevels: [11, 15, 27] },
-        { level: 25, maxTier: 3, tierLevels: [25, 29, 35] },
-        { level: 33, maxTier: 3, tierLevels: [33, 43, 49] }
+        { level: SKILL_UNLOCK_LEVELS.passive1, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.passive1, SKILL_UNLOCK_LEVELS.passive1_lv2, SKILL_UNLOCK_LEVELS.passive1_lv3] },
+        { level: SKILL_UNLOCK_LEVELS.passive2, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.passive2, SKILL_UNLOCK_LEVELS.passive2_lv2, SKILL_UNLOCK_LEVELS.passive2_lv3] },
+        { level: SKILL_UNLOCK_LEVELS.passive3, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.passive3, SKILL_UNLOCK_LEVELS.passive3_lv2, SKILL_UNLOCK_LEVELS.passive3_lv3] },
+        { level: SKILL_UNLOCK_LEVELS.passive4, maxTier: 3, tierLevels: [SKILL_UNLOCK_LEVELS.passive4, SKILL_UNLOCK_LEVELS.passive4_lv2, SKILL_UNLOCK_LEVELS.passive4_lv3] }
     ];
     
     passiveUnlockLevels.forEach((config, index) => {
@@ -1413,7 +1421,10 @@ function initFighterDetailScreen() {
             const skill = fighter.passiveSkills[index];
             
             card.innerHTML = `
-                <div class="skill-icon-large">
+                <div class="skill-icon-large skill-tooltip-trigger"
+                     data-tooltip-title="${skill.name}" 
+                     data-tooltip-desc="${skill.description}"
+                     data-tooltip-meta="Tier ${skill.tier}/${config.maxTier} • Nv.${config.level}">
                     ${skill.icon}
                     <span class="skill-tier-badge">${skill.tier}</span>
                 </div>
@@ -2257,102 +2268,95 @@ function createItemCard(item) {
                 <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">Zona ${item.zone}</p>
             </div>
             ${!item.equipped ? `
-                <button class="btn-secondary btn-small btn-equip-item" data-item-id="${item.id}">
+                <button class="btn-secondary btn-small equip-btn">
                     Equipar
                 </button>
             ` : ''}
         </div>
     `;
     
-    // Agregar event listener al botón de equipar
-    if (!item.equipped) {
-        const equipBtn = card.querySelector('.btn-equip-item');
-        if (equipBtn) {
-            equipBtn.addEventListener('click', () => {
-                equipItem(item.id);
-            });
-        }
+    // Asignar evento al botón de equipar
+    const equipBtn = card.querySelector('.equip-btn');
+    if (equipBtn) {
+        equipBtn.onclick = (e) => {
+            e.stopPropagation();
+            openEquipModal(item.id);
+        };
     }
     
     return card;
 }
 
 /**
- * Equipa un item a un peleador
- * @param {string} itemId - ID del item
+ * Abre el modal para seleccionar a qué peleador equipar
  */
-function equipItem(itemId) {
+function openEquipModal(itemId) {
     const item = gameState.inventory.find(i => i.id === itemId);
     if (!item) return;
     
-    // Mostrar modal de selección de peleador
-    showFighterSelectionModal(item);
-}
-
-/**
- * Muestra modal para seleccionar peleador al que equipar item
- * @param {Object} item - Item a equipar
- */
-function showFighterSelectionModal(item) {
-    const modal = document.getElementById('modal-overlay');
-    const modalContent = document.getElementById('modal-content');
-    
-    // Obtener solo los peleadores que están en el equipo
+    // Obtener peleadores del equipo
     const teamFighters = gameState.team
-        .filter(id => id) // Filtrar slots vacíos
+        .filter(id => id)
         .map(id => gameState.fighters.find(f => f.id === id))
-        .filter(f => f); // Filtrar undefined
+        .filter(f => f);
     
     if (teamFighters.length === 0) {
         showToast('No tienes peleadores en tu equipo', 'error');
         return;
     }
     
-    // Filtrar por compatibilidad (si es arma, verificar clase)
+    // Filtrar por clase si es arma
     let availableFighters = teamFighters;
     if (item.type === 'weapon' && item.class) {
         availableFighters = teamFighters.filter(f => f.class === item.class);
+        if (availableFighters.length === 0) {
+            showToast('Ningún peleador de tu equipo puede usar este arma', 'error');
+            return;
+        }
     }
     
-    if (availableFighters.length === 0) {
-        showToast('Ningún peleador de tu equipo puede usar este item', 'error');
-        return;
-    }
+    const modal = document.getElementById('modal-overlay');
+    const modalContent = document.getElementById('modal-content');
+    
+    // Guardar el itemId en la ventana para acceso posterior
+    window.currentEquipItemId = itemId;
     
     modalContent.innerHTML = `
         <h2>Equipar: ${item.name}</h2>
-        <p style="color: ${item.rarityInfo.color};">${item.rarityInfo.name} • ${item.type === 'weapon' ? 'Arma' : item.type === 'armor' ? 'Armadura' : 'Accesorio'}</p>
-        <div style="max-height: 400px; overflow-y: auto; margin-top: 1rem;">
+        <p style="color: ${item.rarityInfo.color}; margin-bottom: 1rem;">${item.rarityInfo.name}</p>
+        <p style="margin-bottom: 1.5rem; font-size: 0.9rem;">Selecciona un peleador:</p>
+        <div style="display: grid; gap: 0.5rem; margin-bottom: 1.5rem; max-height: 300px; overflow-y: auto;">
             ${availableFighters.map(fighter => `
-                <div class="fighter-select-card" onclick="confirmEquipItem('${item.id}', '${fighter.id}')" style="cursor: pointer; padding: 1rem; border: 2px solid var(--color-border); border-radius: 8px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 1rem;">
-                    <span style="font-size: 2rem;">${FIGHTER_AVATARS[fighter.gender][fighter.class]}</span>
-                    <div style="flex: 1;">
-                        <p style="font-weight: bold; margin: 0;">${fighter.name}</p>
-                        <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin: 0;">
-                            ${CLASSES[fighter.class].name} • Nivel ${fighter.level}
-                        </p>
-                    </div>
-                </div>
+                <button 
+                    class="btn-secondary" 
+                    style="padding: 1rem; text-align: left; border: 2px solid var(--color-border); border-radius: 8px;"
+                    onclick="selectFighterForEquip('${fighter.id}')">
+                    <span style="font-size: 1.5rem; margin-right: 0.5rem;">${FIGHTER_AVATARS[fighter.gender][fighter.class]}</span>
+                    <span style="font-weight: bold;">${fighter.name}</span>
+                    <span style="color: var(--color-text-secondary); margin-left: 0.5rem;">• ${CLASSES[fighter.class].name} Lvl ${fighter.level}</span>
+                </button>
             `).join('')}
         </div>
-        <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn-secondary" style="width: 100%;" onclick="closeModal()">Cancelar</button>
     `;
     
     modal.style.display = 'flex';
 }
 
 /**
- * Confirma y equipa el item al peleador seleccionado
- * @param {string} itemId - ID del item
- * @param {string} fighterId - ID del peleador
+ * Selecciona un peleador para equipar el item
  */
-function confirmEquipItem(itemId, fighterId) {
+function selectFighterForEquip(fighterId) {
+    const itemId = window.currentEquipItemId;
     const item = gameState.inventory.find(i => i.id === itemId);
     const fighter = gameState.fighters.find(f => f.id === fighterId);
     
-    if (!item || !fighter) return;
+    if (!item || !fighter) {
+        showToast('Error al equipar', 'error');
+        return;
+    }
     
-    // Inicializar equipment si no existe (para peleadores antiguos)
+    // Inicializar equipment si no existe
     if (!fighter.equipment) {
         fighter.equipment = {
             helmet: null,
@@ -2371,108 +2375,115 @@ function confirmEquipItem(itemId, fighterId) {
         };
     }
     
-    // Determinar el slot según el tipo de item
+    // Determinar slot
     let slot = null;
-    let isMultiSlot = false;
     
     if (item.type === 'armor') {
-        slot = item.slot; // helmet, chest, legs, etc.
+        slot = item.slot;
     } else if (item.type === 'accessory') {
-        slot = item.slot; // necklace, rune, bracelet, etc.
-        // Los brazaletes, aretes y anillos tienen múltiples slots
-        if (['bracelet', 'earring', 'ring'].includes(slot)) {
-            isMultiSlot = true;
-        }
+        slot = item.slot;
     } else if (item.type === 'weapon') {
-        // Lógica para armas
-        slot = equipWeapon(fighter, item);
-        if (!slot) {
-            showToast('No hay espacio para equipar esta arma', 'error');
-            return;
+        // Para armas, usar lógica de clase
+        const itemName = item.subtype ? item.subtype.toLowerCase() : '';
+        
+        if (['asesino', 'hechicero', 'invocador'].includes(fighter.class)) {
+            if (!fighter.equipment.mainhand) {
+                slot = 'mainhand';
+            } else if (!fighter.equipment.offhand && (itemName.includes('daga') || itemName.includes('espada'))) {
+                slot = 'offhand';
+            } else if (!fighter.equipment.mainhand) {
+                slot = 'mainhand';
+            }
+        } else {
+            if (!fighter.equipment.mainhand) {
+                slot = 'mainhand';
+            }
         }
     }
     
     if (!slot) {
-        showToast('Error al equipar item', 'error');
+        showToast('No hay espacio para equipar este item', 'error');
         return;
     }
     
-    // Equipar item
-    if (isMultiSlot) {
-        // Para items con múltiples slots (brazalete, arete, anillo)
-        const maxSlots = EQUIPMENT_SLOTS[slot].max;
+    // Verificar si hay algo equipado
+    if (Array.isArray(fighter.equipment[slot])) {
+        // Slot múltiple
+        const maxSlots = EQUIPMENT_SLOTS[slot] ? EQUIPMENT_SLOTS[slot].max : 3;
         if (fighter.equipment[slot].length >= maxSlots) {
-            showToast(`Ya tienes ${maxSlots} ${EQUIPMENT_SLOTS[slot].name}(s) equipado(s)`, 'error');
+            showToast(`Ya tienes ${maxSlots} items en este slot`, 'error');
             return;
         }
+        // fighter.equipment[slot].push(item.id); // Removed premature push
+    } else if (fighter.equipment[slot]) {
+        // Slot ocupado, preguntar si reemplazar
+        const currentItemId = fighter.equipment[slot];
+        const currentItem = gameState.inventory.find(i => i.id === currentItemId);
+        
+        const slotName = EQUIPMENT_SLOTS[slot] ? EQUIPMENT_SLOTS[slot].name : slot;
+        
+        showModal(
+            'Reemplazar Equipo',
+            `<p>${fighter.name} ya tiene <strong>${currentItem ? currentItem.name : 'un item'}</strong> equipado en ${slotName}.</p><p>¿Deseas reemplazarlo?</p>`,
+            [
+                { text: 'Cancelar', action: 'closeModal()' },
+                { text: 'Reemplazar', class: 'btn-primary', action: `doEquipItem('${itemId}', '${fighterId}', '${slot}', true)` }
+            ]
+        );
+        return;
+    } else {
+        // Slot vacío, equipar directamente
+        doEquipItem(itemId, fighterId, slot, false);
+        return;
+    }
+    
+    // Para slots múltiples sin espacio completo
+    doEquipItem(itemId, fighterId, slot, false);
+}
+
+/**
+ * Ejecuta el equipamiento del item
+ */
+function doEquipItem(itemId, fighterId, slot, replacing) {
+    const item = gameState.inventory.find(i => i.id === itemId);
+    const fighter = gameState.fighters.find(f => f.id === fighterId);
+    
+    if (!item || !fighter) return;
+    
+    // Si reemplazamos, desequipar el anterior
+    if (replacing && fighter.equipment[slot]) {
+        const oldItemId = fighter.equipment[slot];
+        const oldItem = gameState.inventory.find(i => i.id === oldItemId);
+        if (oldItem) {
+            oldItem.equipped = false;
+            oldItem.equippedBy = null;
+        }
+    }
+    
+    // Equipar el nuevo item
+    if (Array.isArray(fighter.equipment[slot])) {
         fighter.equipment[slot].push(item.id);
     } else {
-        // Para slots únicos
-        const oldItem = fighter.equipment[slot];
-        if (oldItem) {
-            // Devolver item anterior al inventario
-            const oldItemData = gameState.inventory.find(i => i.id === oldItem);
-            if (oldItemData) {
-                oldItemData.equipped = false;
-                oldItemData.equippedBy = null;
-            }
-        }
         fighter.equipment[slot] = item.id;
     }
     
-    // Marcar item como equipado
     item.equipped = true;
     item.equippedBy = fighterId;
     
     saveGame();
     showToast(`${item.name} equipado a ${fighter.name}`, 'success');
-    
     closeModal();
     
-    // Actualizar UI si estamos en la pantalla de inventario
+    // Actualizar UI
     if (document.getElementById('screen-inventory').classList.contains('active')) {
         initInventoryScreen();
-    }
-    
-    // Si estamos viendo el detalle del peleador, actualizar
-    if (document.getElementById('screen-fighter-detail').classList.contains('active')) {
-        const currentFighter = gameState.fighters.find(f => f.id === fighterId);
-        if (currentFighter) {
-            openFighterDetail(currentFighter.id);
-        }
     }
 }
 
 /**
- * Equipa un arma al peleador según las reglas de la clase
- * @param {Object} fighter - Peleador
- * @param {Object} item - Item de arma
- * @returns {string|null} Slot donde se equipó o null si no se pudo
+ * Muestra modal para seleccionar peleador al que equipar item
+ * @param {Object} item - Item a equipar
  */
-function equipWeapon(fighter, item) {
-    const itemName = item.subtype.toLowerCase();
-    
-    // Asesino, Hechicero, Invocador: pueden portar 2 dagas, o 1 espada + 1 daga, o 2 espadas
-    if (['asesino', 'hechicero', 'invocador'].includes(fighter.class)) {
-        if (itemName.includes('daga') || itemName.includes('espada')) {
-            // Intentar mano principal primero
-            if (!fighter.equipment.mainhand) {
-                return 'mainhand';
-            } else if (!fighter.equipment.offhand) {
-                return 'offhand';
-            }
-        } else {
-            // Otras armas solo en mano principal
-            return 'mainhand';
-        }
-    } else {
-        // Otras clases: solo mano principal
-        return 'mainhand';
-    }
-    
-    return null;
-}
-
 /**
  * Desequipa un item del peleador
  * @param {string} fighterId - ID del peleador
@@ -3275,6 +3286,7 @@ function battleTick() {
     // Incrementar barras de acción
     const allFighters = [...battleState.playerTeam, ...battleState.enemyTeam];
     
+    // 1. Incrementar barras de todos
     allFighters.forEach(fighter => {
         if (fighter.hp <= 0) return;
         
@@ -3282,15 +3294,25 @@ function battleTick() {
         const speed = fighter.combatStats ? fighter.combatStats.attackSpeed : (1 + (fighter.stats.agi * 0.05));
         fighter.actionBar += speed;
         
-        // Si la barra está llena, atacar
-        if (fighter.actionBar >= 100) {
-            performAttack(fighter);
-            fighter.actionBar = 0;
-            fighter.attackCount++;
-        }
-        
         updateBattleFighterUI(fighter);
     });
+
+    // 2. Ejecutar UN solo ataque por tick para evitar spam en el log
+    // Buscar peleadores listos
+    const readyFighters = allFighters.filter(f => f.hp > 0 && f.actionBar >= 100);
+    
+    if (readyFighters.length > 0) {
+        // Ordenar por quién tiene más barra (prioridad)
+        readyFighters.sort((a, b) => b.actionBar - a.actionBar);
+        
+        const attacker = readyFighters[0];
+        
+        performAttack(attacker);
+        attacker.actionBar = 0;
+        attacker.attackCount++;
+        
+        updateBattleFighterUI(attacker);
+    }
 }
 
 /**
@@ -3324,8 +3346,11 @@ function performAttack(attacker) {
     let isSkillAttack = false;
     let skillUsed = null;
     
-    // Verificar si es ataque especial (cada 5 ataques)
-    const isSpecialTurn = attacker.attackCount > 0 && attacker.attackCount % 4 === 0;
+    // Verificar si es ataque especial
+    // Tanques, Curadores, Invocadores: cada 3 ataques (Básico, Básico, Skill)
+    // Otros: cada 4 ataques (Básico, Básico, Básico, Skill)
+    const skillFrequency = ['tanque', 'curador', 'invocador'].includes(attacker.class) ? 3 : 4;
+    const isSpecialTurn = (attacker.attackCount + 1) % skillFrequency === 0;
     
     if (isSpecialTurn && attacker.activeSkills && attacker.activeSkills.length > 0) {
         // Seleccionar una habilidad activa
@@ -3571,8 +3596,8 @@ function addBattleLog(message, type = '') {
     const entry = document.createElement('p');
     entry.className = `log-entry ${type}`;
     entry.textContent = message;
-    logContainer.appendChild(entry);
-    logContainer.scrollTop = logContainer.scrollHeight;
+    logContainer.prepend(entry);
+    // No hacemos scroll al fondo porque ahora los nuevos mensajes aparecen arriba
 }
 
 /**
@@ -3768,7 +3793,7 @@ function handleExplorationVictory() {
         const baseExp = zone * 15 + stage * 5;
         const baseGold = zone * 10 + stage * 8;
         
-        const expGain = Math.floor(baseExp * expMultiplier) + Math.floor(Math.random() * 10);
+        const expGain = (Math.floor(baseExp * expMultiplier) + Math.floor(Math.random() * 10)) * 2;
         const goldGain = Math.floor(baseGold * goldMultiplier) + Math.floor(Math.random() * 20);
         
         // Dar experiencia a los peleadores
@@ -3906,7 +3931,7 @@ function handleArenaVictory() {
     gameState.player.gold += goldGain;
     
     // Dar algo de EXP a los peleadores
-    const expGain = Math.floor(20 + gameState.player.level * 2);
+    const expGain = Math.floor(20 + gameState.player.level * 2) * 2;
     battleState.playerTeam.forEach(fighter => {
         const realFighter = gameState.fighters.find(f => f.id === fighter.id);
         if (realFighter) {
@@ -4043,8 +4068,14 @@ function gainFighterExp(fighter, exp) {
  * @param {Object} fighter - Peleador
  */
 function checkSkillUnlock(fighter) {
-    // Habilidades activas en niveles 5, 30, 40
-    const activeUnlockLevels = [5, 30, 40];
+    // Habilidades activas
+    const activeUnlockLevels = [
+        SKILL_UNLOCK_LEVELS.active1,
+        SKILL_UNLOCK_LEVELS.active2,
+        SKILL_UNLOCK_LEVELS.active3,
+        SKILL_UNLOCK_LEVELS.active4
+    ];
+    
     activeUnlockLevels.forEach((level, index) => {
         if (fighter.level >= level && !fighter.activeSkills[index] && fighter.skillPool.active.length > 0) {
             const skill = fighter.skillPool.active.shift();
@@ -4054,24 +4085,30 @@ function checkSkillUnlock(fighter) {
     });
     
     // Subir nivel de habilidades activas
-    if (fighter.level >= 8 && fighter.activeSkills[0] && fighter.activeSkills[0].tier < 2) {
-        fighter.activeSkills[0].tier = 2;
-    }
-    if (fighter.level >= 20 && fighter.activeSkills[0] && fighter.activeSkills[0].tier < 3) {
-        fighter.activeSkills[0].tier = 3;
-    }
-    if (fighter.level >= 45 && fighter.activeSkills[1] && fighter.activeSkills[1].tier < 2) {
-        fighter.activeSkills[1].tier = 2;
-    }
-    if (fighter.level >= 45 && fighter.activeSkills[2] && fighter.activeSkills[2].tier < 2) {
-        fighter.activeSkills[2].tier = 2;
-    }
-    if (fighter.level >= 50 && fighter.activeSkills[2] && fighter.activeSkills[2].tier < 3) {
-        fighter.activeSkills[2].tier = 3;
-    }
+    // Active 1
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active1_lv2 && fighter.activeSkills[0] && fighter.activeSkills[0].tier < 2) fighter.activeSkills[0].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active1_lv3 && fighter.activeSkills[0] && fighter.activeSkills[0].tier < 3) fighter.activeSkills[0].tier = 3;
     
-    // Habilidades pasivas en niveles 11, 25, 33
-    const passiveUnlockLevels = [11, 25, 33];
+    // Active 2
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active2_lv2 && fighter.activeSkills[1] && fighter.activeSkills[1].tier < 2) fighter.activeSkills[1].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active2_lv3 && fighter.activeSkills[1] && fighter.activeSkills[1].tier < 3) fighter.activeSkills[1].tier = 3;
+    
+    // Active 3
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active3_lv2 && fighter.activeSkills[2] && fighter.activeSkills[2].tier < 2) fighter.activeSkills[2].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active3_lv3 && fighter.activeSkills[2] && fighter.activeSkills[2].tier < 3) fighter.activeSkills[2].tier = 3;
+
+    // Active 4
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active4_lv2 && fighter.activeSkills[3] && fighter.activeSkills[3].tier < 2) fighter.activeSkills[3].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.active4_lv3 && fighter.activeSkills[3] && fighter.activeSkills[3].tier < 3) fighter.activeSkills[3].tier = 3;
+    
+    // Habilidades pasivas
+    const passiveUnlockLevels = [
+        SKILL_UNLOCK_LEVELS.passive1,
+        SKILL_UNLOCK_LEVELS.passive2,
+        SKILL_UNLOCK_LEVELS.passive3,
+        SKILL_UNLOCK_LEVELS.passive4
+    ];
+    
     passiveUnlockLevels.forEach((level, index) => {
         if (fighter.level >= level && !fighter.passiveSkills[index] && fighter.skillPool.passive.length > 0) {
             const skill = fighter.skillPool.passive.shift();
@@ -4081,24 +4118,21 @@ function checkSkillUnlock(fighter) {
     });
     
     // Subir nivel de habilidades pasivas
-    if (fighter.level >= 15 && fighter.passiveSkills[0] && fighter.passiveSkills[0].tier < 2) {
-        fighter.passiveSkills[0].tier = 2;
-    }
-    if (fighter.level >= 27 && fighter.passiveSkills[0] && fighter.passiveSkills[0].tier < 3) {
-        fighter.passiveSkills[0].tier = 3;
-    }
-    if (fighter.level >= 29 && fighter.passiveSkills[1] && fighter.passiveSkills[1].tier < 2) {
-        fighter.passiveSkills[1].tier = 2;
-    }
-    if (fighter.level >= 35 && fighter.passiveSkills[1] && fighter.passiveSkills[1].tier < 3) {
-        fighter.passiveSkills[1].tier = 3;
-    }
-    if (fighter.level >= 43 && fighter.passiveSkills[2] && fighter.passiveSkills[2].tier < 2) {
-        fighter.passiveSkills[2].tier = 2;
-    }
-    if (fighter.level >= 49 && fighter.passiveSkills[2] && fighter.passiveSkills[2].tier < 3) {
-        fighter.passiveSkills[2].tier = 3;
-    }
+    // Passive 1
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive1_lv2 && fighter.passiveSkills[0] && fighter.passiveSkills[0].tier < 2) fighter.passiveSkills[0].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive1_lv3 && fighter.passiveSkills[0] && fighter.passiveSkills[0].tier < 3) fighter.passiveSkills[0].tier = 3;
+    
+    // Passive 2
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive2_lv2 && fighter.passiveSkills[1] && fighter.passiveSkills[1].tier < 2) fighter.passiveSkills[1].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive2_lv3 && fighter.passiveSkills[1] && fighter.passiveSkills[1].tier < 3) fighter.passiveSkills[1].tier = 3;
+    
+    // Passive 3
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive3_lv2 && fighter.passiveSkills[2] && fighter.passiveSkills[2].tier < 2) fighter.passiveSkills[2].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive3_lv3 && fighter.passiveSkills[2] && fighter.passiveSkills[2].tier < 3) fighter.passiveSkills[2].tier = 3;
+
+    // Passive 4
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive4_lv2 && fighter.passiveSkills[3] && fighter.passiveSkills[3].tier < 2) fighter.passiveSkills[3].tier = 2;
+    if (fighter.level >= SKILL_UNLOCK_LEVELS.passive4_lv3 && fighter.passiveSkills[3] && fighter.passiveSkills[3].tier < 3) fighter.passiveSkills[3].tier = 3;
 }
 
 /**
@@ -4318,7 +4352,88 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     console.log('✅ Juego inicializado correctamente');
+    
+    // Inicializar sistema de tooltips
+    setupTooltips();
 });
+
+/**
+ * Configura el sistema de tooltips
+ */
+function setupTooltips() {
+    // Crear elemento tooltip si no existe
+    let tooltip = document.getElementById('game-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'game-tooltip';
+        tooltip.className = 'game-tooltip';
+        document.body.appendChild(tooltip);
+    }
+    
+    // Event delegation para mostrar tooltip
+    document.body.addEventListener('mouseover', (e) => {
+        const trigger = e.target.closest('.skill-tooltip-trigger');
+        if (trigger) {
+            const title = trigger.dataset.tooltipTitle;
+            const desc = trigger.dataset.tooltipDesc;
+            const meta = trigger.dataset.tooltipMeta;
+            
+            if (title && desc) {
+                tooltip.innerHTML = `
+                    <h4>${title}</h4>
+                    <p>${desc}</p>
+                    ${meta ? `<div class="tooltip-meta">${meta}</div>` : ''}
+                `;
+                tooltip.classList.add('visible');
+                
+                // Posicionar inicialmente
+                positionTooltip(e, tooltip);
+            }
+        }
+    });
+    
+    // Ocultar tooltip
+    document.body.addEventListener('mouseout', (e) => {
+        const trigger = e.target.closest('.skill-tooltip-trigger');
+        if (trigger) {
+            tooltip.classList.remove('visible');
+        }
+    });
+    
+    // Mover tooltip con el mouse
+    document.body.addEventListener('mousemove', (e) => {
+        if (tooltip.classList.contains('visible')) {
+            positionTooltip(e, tooltip);
+        }
+    });
+}
+
+/**
+ * Posiciona el tooltip cerca del cursor pero sin salirse de la pantalla
+ */
+function positionTooltip(e, tooltip) {
+    const x = e.clientX + 15;
+    const y = e.clientY + 15;
+    
+    // Ajustar si se sale de la pantalla
+    const rect = tooltip.getBoundingClientRect();
+    const winWidth = window.innerWidth;
+    const winHeight = window.innerHeight;
+    
+    let finalX = x;
+    let finalY = y;
+    
+    if (x + rect.width > winWidth) {
+        finalX = e.clientX - rect.width - 10;
+    }
+    
+    if (y + rect.height > winHeight) {
+        finalY = e.clientY - rect.height - 10;
+    }
+    
+    tooltip.style.left = `${finalX}px`;
+    tooltip.style.top = `${finalY}px`;
+}
 
 // Exponer funciones globales necesarias para onclick en HTML
 window.navigateTo = navigateTo;
@@ -4333,6 +4448,9 @@ window.enterStage = enterStage;
 window.openZoneStages = openZoneStages;
 window.handleVictoryContinue = handleVictoryContinue;
 window.handleDefeatReturn = handleDefeatReturn;
+window.openEquipModal = openEquipModal;
+window.selectFighterForEquip = selectFighterForEquip;
+window.doEquipItem = doEquipItem;
 window.removeFighter = removeFighter;
 window.confirmRemoveFighter = confirmRemoveFighter;
 window.startArenaFight = startArenaFight;

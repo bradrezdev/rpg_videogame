@@ -2889,3 +2889,49 @@ input[type="range"]::-webkit-slider-thumb {
     background: rgba(255, 215, 0, 0.1);
     border-color: var(--color-gold) !important;
 }
+/* Tooltip Styles */
+.game-tooltip {
+    position: fixed;
+    background: rgba(16, 20, 30, 0.95);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    color: var(--color-text-primary);
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    max-width: 300px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    transform: translateY(10px);
+}
+
+.game-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.game-tooltip h4 {
+    color: var(--color-gold);
+    margin: 0 0 0.5rem 0;
+    font-family: var(--font-title);
+    font-size: 1.1rem;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    padding-bottom: 0.25rem;
+}
+
+.game-tooltip p {
+    margin: 0;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+}
+
+.game-tooltip .tooltip-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-blue);
+}
