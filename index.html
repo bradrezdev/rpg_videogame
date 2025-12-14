@@ -443,6 +443,14 @@
                         </div>
                     </div>
                     
+                    <!-- Equipamiento -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title">🎒 Equipamiento</h3>
+                        <div id="equipment-slots">
+                            <!-- Se genera dinámicamente -->
+                        </div>
+                    </div>
+                    
                     <!-- Acciones -->
                     <div class="detail-actions">
                         <button class="btn-secondary" id="btn-remove-from-team" style="display: none;">
@@ -623,10 +631,23 @@
             
             <div class="screen-content">
                 <div class="inventory-container">
-                    <div class="inventory-tabs">
-                        <button class="tab-btn active" data-tab="equipment">Equipamiento</button>
-                        <button class="tab-btn" data-tab="consumables">Consumibles</button>
-                        <button class="tab-btn" data-tab="materials">Materiales</button>
+                    <div class="inventory-controls">
+                        <div class="inventory-filters">
+                            <button class="filter-btn active" data-filter="all">Todos</button>
+                            <button class="filter-btn" data-filter="weapon">⚔️ Armas</button>
+                            <button class="filter-btn" data-filter="armor">🛡️ Armadura</button>
+                            <button class="filter-btn" data-filter="accessory">✨ Accesorios</button>
+                        </div>
+                        <div class="inventory-rarity-filters">
+                            <button class="rarity-filter-btn active" data-rarity="all" title="Mostrar todos">⭐</button>
+                            <button class="rarity-filter-btn" data-rarity="normal" title="Normal">⚪</button>
+                            <button class="rarity-filter-btn" data-rarity="rare" title="Raro">🔵</button>
+                            <button class="rarity-filter-btn" data-rarity="epic" title="Épico">🟣</button>
+                            <button class="rarity-filter-btn" data-rarity="legendary" title="Legendario">🟠</button>
+                        </div>
+                    </div>
+                    <div class="inventory-stats">
+                        <span id="inventory-count">0</span> items
                     </div>
                     <div class="inventory-grid" id="inventory-grid">
                         <div class="empty-state">

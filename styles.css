@@ -2036,8 +2036,85 @@ body {
 
 .inventory-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+}
+
+/* Controles del inventario */
+.inventory-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-bg-card);
+    border-radius: var(--border-radius-md);
+}
+
+.inventory-filters {
+    display: flex;
     gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg-dark);
+    color: var(--color-text-secondary);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.filter-btn:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.filter-btn.active {
+    background: var(--color-gold);
+    color: var(--color-bg-dark);
+    border-color: var(--color-gold);
+}
+
+.inventory-rarity-filters {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.rarity-filter-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg-dark);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rarity-filter-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.rarity-filter-btn.active {
+    border-color: var(--color-gold);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+}
+
+.inventory-stats {
+    padding: 0.5rem var(--spacing-md);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
 }
 
 .inventory-slot {
@@ -2579,4 +2656,190 @@ input[type="range"]::-webkit-slider-thumb {
 
 .rarity-legendary {
     color: #ff9800;
+}
+
+/* ============================================
+   EQUIPAMIENTO
+   ============================================ */
+
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.equipment-section {
+    background: var(--color-bg-card);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.equipment-section h4 {
+    font-family: var(--font-title);
+    color: var(--color-gold);
+    margin-bottom: var(--spacing-md);
+    font-size: 1.1rem;
+}
+
+.equipment-slot {
+    background: var(--color-bg-dark);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    transition: all var(--transition-fast);
+}
+
+.equipment-slot.equipped {
+    border-color: var(--color-gold);
+    background: rgba(255, 215, 0, 0.05);
+}
+
+.equipment-slot.empty {
+    opacity: 0.6;
+}
+
+.equipment-slot.empty:hover {
+    opacity: 0.8;
+}
+
+.slot-icon {
+    font-size: 1.5rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.slot-content {
+    flex: 1;
+}
+
+.slot-label {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.slot-item {
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.slot-stats {
+    font-size: 0.75rem;
+    color: var(--color-gold);
+}
+
+.slot-empty-text {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.btn-unequip {
+    background: var(--color-red);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-unequip:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+/* Slots múltiples (brazalete, arete, anillo) */
+.equipment-slot-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.slot-group-label {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.slot-group-items {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+}
+
+.equipment-slot-mini {
+    width: 60px;
+    height: 60px;
+    background: var(--color-bg-dark);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.equipment-slot-mini.equipped {
+    border-color: var(--color-gold);
+    background: rgba(255, 215, 0, 0.05);
+}
+
+.equipment-slot-mini.empty {
+    opacity: 0.5;
+}
+
+.slot-item-mini {
+    font-size: 1.5rem;
+    position: relative;
+    padding: 0.25rem;
+    border-radius: var(--border-radius-sm);
+}
+
+.slot-empty-mini {
+    font-size: 1.25rem;
+    opacity: 0.4;
+}
+
+.btn-unequip-mini {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--color-red);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: all var(--transition-fast);
+}
+
+.btn-unequip-mini:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* Modal de selección de peleador */
+.fighter-select-card:hover {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: var(--color-gold) !important;
 }

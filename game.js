@@ -278,6 +278,30 @@ const ACCESSORY_TYPES = [
 ];
 
 /**
+ * Definición de slots de equipamiento disponibles
+ */
+const EQUIPMENT_SLOTS = {
+    // Armadura (6 slots únicos)
+    helmet: { name: 'Casco', icon: '⛑️', type: 'armor', max: 1 },
+    chest: { name: 'Peto', icon: '🦺', type: 'armor', max: 1 },
+    legs: { name: 'Pantalones', icon: '👖', type: 'armor', max: 1 },
+    gloves: { name: 'Guantes', icon: '🧤', type: 'armor', max: 1 },
+    boots: { name: 'Botas', icon: '🥾', type: 'armor', max: 1 },
+    belt: { name: 'Cinturón', icon: '🎽', type: 'armor', max: 1 },
+    
+    // Accesorios
+    necklace: { name: 'Collar', icon: '📿', type: 'accessory', max: 1 },
+    rune: { name: 'Runa', icon: '🔮', type: 'accessory', max: 1 },
+    bracelet: { name: 'Brazalete', icon: '📿', type: 'accessory', max: 2 },
+    earring: { name: 'Arete', icon: '💍', type: 'accessory', max: 2 },
+    ring: { name: 'Anillo', icon: '💍', type: 'accessory', max: 2 },
+    
+    // Armas (variable según clase)
+    mainhand: { name: 'Mano Principal', icon: '⚔️', type: 'weapon', max: 1 },
+    offhand: { name: 'Mano Secundaria', icon: '🗡️', type: 'weapon', max: 1 }
+};
+
+/**
  * Probabilidades de drop por zona
  */
 const DROP_RATES = {
@@ -1326,6 +1350,9 @@ function initFighterDetailScreen() {
         </div>
     `).join('') || '<span style="color: var(--color-text-muted); font-size: 0.75rem;">No hay más habilidades por aprender</span>';
     
+    // === EQUIPAMIENTO ===
+    renderEquipmentSlots(fighter);
+    
     // === BOTÓN DE REMOVER DEL EQUIPO ===
     const btnRemoveFromTeam = document.getElementById('btn-remove-from-team');
     const isInTeam = gameState.team.includes(currentFighterId);
@@ -1338,12 +1365,134 @@ function initFighterDetailScreen() {
 }
 
 /**
+ * Renderiza los slots de equipamiento del peleador
+ * @param {Object} fighter - Peleador
+ */
+function renderEquipmentSlots(fighter) {
+    const equipmentContainer = document.getElementById('equipment-slots');
+    if (!equipmentContainer) return;
+    
+    // Inicializar equipment si no existe
+    if (!fighter.equipment) {
+        fighter.equipment = {
+            helmet: null,
+            chest: null,
+            legs: null,
+            gloves: null,
+            boots: null,
+            belt: null,
+            necklace: null,
+            rune: null,
+            bracelet: [],
+            earring: [],
+            ring: [],
+            mainhand: null,
+            offhand: null
+        };
+    }
+    
+    // Función helper para obtener item por ID
+    const getItem = (itemId) => gameState.inventory.find(i => i.id === itemId);
+    
+    // Función para renderizar un slot único
+    const renderSlot = (slotKey, slotInfo) => {
+        const itemId = fighter.equipment[slotKey];
+        const item = itemId ? getItem(itemId) : null;
+        
+        return `
+            <div class="equipment-slot ${item ? 'equipped' : 'empty'}">
+                <div class="slot-icon">${slotInfo.icon}</div>
+                <div class="slot-content">
+                    <div class="slot-label">${slotInfo.name}</div>
+                    ${item ? `
+                        <div class="slot-item" style="color: ${item.rarityInfo.color};">
+                            ${item.icon} ${item.name}
+                            <button class="btn-unequip" onclick="unequipItem('${fighter.id}', '${slotKey}')">✖</button>
+                        </div>
+                        <div class="slot-stats">${Object.entries(item.stats).filter(([s, v]) => v > 0).map(([s, v]) => `+${v} ${s.toUpperCase()}`).join(', ')}</div>
+                    ` : `
+                        <div class="slot-empty-text">Vacío</div>
+                    `}
+                </div>
+            </div>
+        `;
+    };
+    
+    // Función para renderizar slots múltiples
+    const renderMultiSlot = (slotKey, slotInfo) => {
+        const items = fighter.equipment[slotKey] || [];
+        const maxSlots = slotInfo.max;
+        
+        let slotsHTML = '';
+        for (let i = 0; i < maxSlots; i++) {
+            const itemId = items[i];
+            const item = itemId ? getItem(itemId) : null;
+            
+            slotsHTML += `
+                <div class="equipment-slot-mini ${item ? 'equipped' : 'empty'}">
+                    ${item ? `
+                        <div class="slot-item-mini" style="border-color: ${item.rarityInfo.color};" title="${item.name}&#10;${Object.entries(item.stats).filter(([s, v]) => v > 0).map(([s, v]) => `+${v} ${s.toUpperCase()}`).join(', ')}">
+                            ${item.icon}
+                            <button class="btn-unequip-mini" onclick="unequipItem('${fighter.id}', '${slotKey}', ${i})">✖</button>
+                        </div>
+                    ` : `
+                        <div class="slot-empty-mini">${slotInfo.icon}</div>
+                    `}
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="equipment-slot-group">
+                <div class="slot-group-label">${slotInfo.name} (${items.length}/${maxSlots})</div>
+                <div class="slot-group-items">
+                    ${slotsHTML}
+                </div>
+            </div>
+        `;
+    };
+    
+    equipmentContainer.innerHTML = `
+        <div class="equipment-grid">
+            <!-- Armas -->
+            <div class="equipment-section">
+                <h4>⚔️ Armas</h4>
+                ${renderSlot('mainhand', EQUIPMENT_SLOTS.mainhand)}
+                ${renderSlot('offhand', EQUIPMENT_SLOTS.offhand)}
+            </div>
+            
+            <!-- Armadura -->
+            <div class="equipment-section">
+                <h4>🛡️ Armadura</h4>
+                ${renderSlot('helmet', EQUIPMENT_SLOTS.helmet)}
+                ${renderSlot('chest', EQUIPMENT_SLOTS.chest)}
+                ${renderSlot('legs', EQUIPMENT_SLOTS.legs)}
+                ${renderSlot('gloves', EQUIPMENT_SLOTS.gloves)}
+                ${renderSlot('boots', EQUIPMENT_SLOTS.boots)}
+                ${renderSlot('belt', EQUIPMENT_SLOTS.belt)}
+            </div>
+            
+            <!-- Accesorios -->
+            <div class="equipment-section">
+                <h4>✨ Accesorios</h4>
+                ${renderSlot('necklace', EQUIPMENT_SLOTS.necklace)}
+                ${renderSlot('rune', EQUIPMENT_SLOTS.rune)}
+                ${renderMultiSlot('bracelet', EQUIPMENT_SLOTS.bracelet)}
+                ${renderMultiSlot('earring', EQUIPMENT_SLOTS.earring)}
+                ${renderMultiSlot('ring', EQUIPMENT_SLOTS.ring)}
+            </div>
+        </div>
+    `;
+}
+
+/**
  * Calcula los stats de combate basados en stats base y pasivas
  * @param {Object} fighter - Peleador
  * @returns {Object} Stats de combate calculados
  */
 function calculateCombatStats(fighter) {
-    const stats = fighter.stats;
+    // Usar stats totales (base + equipamiento)
+    const stats = calculateTotalStats(fighter);
     const level = fighter.level;
     
     // Stats base calculados
@@ -1798,6 +1947,21 @@ function recruitFighter() {
         skillPool: {
             active: shuffleArray([...ACTIVE_SKILLS[selectedClass]]).slice(0, 10),
             passive: shuffleArray([...PASSIVE_SKILLS[selectedClass]]).slice(0, 10)
+        },
+        equipment: {
+            helmet: null,
+            chest: null,
+            legs: null,
+            gloves: null,
+            boots: null,
+            belt: null,
+            necklace: null,
+            rune: null,
+            bracelet: [],  // max 2
+            earring: [],   // max 2
+            ring: [],      // max 2
+            mainhand: null,
+            offhand: null
         }
     };
     
@@ -1849,43 +2013,74 @@ function initInventoryScreen() {
         gameState.inventory = [];
     }
     
-    if (gameState.inventory.length === 0) {
+    // Aplicar filtros
+    const activeTypeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+    const activeRarityFilter = document.querySelector('.rarity-filter-btn.active')?.dataset.rarity || 'all';
+    
+    let filteredItems = gameState.inventory;
+    
+    // Filtrar por tipo
+    if (activeTypeFilter !== 'all') {
+        filteredItems = filteredItems.filter(item => item.type === activeTypeFilter);
+    }
+    
+    // Filtrar por rareza
+    if (activeRarityFilter !== 'all') {
+        filteredItems = filteredItems.filter(item => item.rarity === activeRarityFilter);
+    }
+    
+    // Actualizar contador
+    document.getElementById('inventory-count').textContent = filteredItems.length;
+    
+    // Mostrar items
+    if (filteredItems.length === 0) {
         inventoryGrid.innerHTML = `
             <div class="empty-state">
                 <span class="empty-icon">🎒</span>
-                <p>Tu inventario está vacío</p>
-                <p style="font-size: 0.875rem; color: var(--color-text-secondary);">
-                    Derrota enemigos en Exploración para obtener items
-                </p>
+                <p>${gameState.inventory.length === 0 ? 'Tu inventario está vacío' : 'No hay items con estos filtros'}</p>
             </div>
         `;
         return;
     }
     
-    // Mostrar items agrupados por tipo
-    inventoryGrid.innerHTML = '';
-    
-    // Agrupar items por rareza para mejor organización
-    const itemsByRarity = {
-        legendary: [],
-        epic: [],
-        rare: [],
-        normal: []
-    };
-    
-    gameState.inventory.forEach(item => {
-        itemsByRarity[item.rarity].push(item);
+    // Ordenar items por rareza (legendario primero) y luego por zona
+    const rarityOrder = { legendary: 0, epic: 1, rare: 2, normal: 3 };
+    filteredItems.sort((a, b) => {
+        if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) {
+            return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+        }
+        return b.zone - a.zone;
     });
     
-    // Mostrar items por rareza (legendarios primero)
-    ['legendary', 'epic', 'rare', 'normal'].forEach(rarity => {
-        const items = itemsByRarity[rarity];
-        if (items.length === 0) return;
-        
-        items.forEach(item => {
-            const itemCard = createItemCard(item);
-            inventoryGrid.appendChild(itemCard);
-        });
+    inventoryGrid.innerHTML = filteredItems.map(item => {
+        const card = createItemCard(item);
+        return card.outerHTML;
+    }).join('');
+    
+    // Configurar event listeners para filtros si no están configurados
+    setupInventoryFilters();
+}
+
+/**
+ * Configura los event listeners para los filtros del inventario
+ */
+function setupInventoryFilters() {
+    // Filtros de tipo
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initInventoryScreen();
+        };
+    });
+    
+    // Filtros de rareza
+    document.querySelectorAll('.rarity-filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.rarity-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initInventoryScreen();
+        };
     });
 }
 
@@ -1908,6 +2103,15 @@ function createItemCard(item) {
     // Texto de clase (solo para armas)
     const classText = item.class ? `<p style="font-size: 0.75rem; color: var(--color-text-secondary);">Para: ${CLASSES[item.class].name}</p>` : '';
     
+    // Mostrar información de equipamiento
+    let equipText = '';
+    if (item.equipped && item.equippedBy) {
+        const fighter = gameState.fighters.find(f => f.id === item.equippedBy);
+        if (fighter) {
+            equipText = `<p style="font-size: 0.75rem; color: var(--color-green); margin: 0.25rem 0;">✓ Equipado en ${fighter.name}</p>`;
+        }
+    }
+    
     card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.75rem;">
             <span style="font-size: 2rem;">${item.icon}</span>
@@ -1917,12 +2121,15 @@ function createItemCard(item) {
                     ${item.rarityInfo.name} • ${item.type === 'weapon' ? 'Arma' : item.type === 'armor' ? 'Armadura' : 'Accesorio'}
                 </p>
                 ${classText}
+                ${equipText}
                 <p style="font-size: 0.875rem; color: var(--color-gold); margin: 0.25rem 0;">${statsText}</p>
                 <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">Zona ${item.zone}</p>
             </div>
-            <button class="btn-secondary btn-small" onclick="equipItem('${item.id}')">
-                Equipar
-            </button>
+            ${!item.equipped ? `
+                <button class="btn-secondary btn-small" onclick="equipItem('${item.id}')">
+                    Equipar
+                </button>
+            ` : ''}
         </div>
     `;
     
@@ -1930,21 +2137,267 @@ function createItemCard(item) {
 }
 
 /**
- * Equipa un item a un peleador (placeholder)
+ * Equipa un item a un peleador
  * @param {string} itemId - ID del item
  */
 function equipItem(itemId) {
     const item = gameState.inventory.find(i => i.id === itemId);
     if (!item) return;
     
-    // Por ahora solo mostrar un mensaje
-    showToast(`Sistema de equipamiento en desarrollo`, 'info');
+    // Mostrar modal de selección de peleador
+    showFighterSelectionModal(item);
+}
+
+/**
+ * Muestra modal para seleccionar peleador al que equipar item
+ * @param {Object} item - Item a equipar
+ */
+function showFighterSelectionModal(item) {
+    const modal = document.getElementById('modal-overlay');
+    const modalContent = document.getElementById('modal-content');
     
-    // TODO: Implementar sistema de equipamiento completo
-    // - Seleccionar peleador
-    // - Verificar compatibilidad de clase (para armas)
-    // - Equipar en el slot correcto
-    // - Actualizar stats del peleador
+    // Filtrar peleadores compatibles (si es arma, verificar clase)
+    let availableFighters = gameState.fighters;
+    if (item.type === 'weapon' && item.class) {
+        availableFighters = gameState.fighters.filter(f => f.class === item.class);
+    }
+    
+    if (availableFighters.length === 0) {
+        showToast('No tienes peleadores compatibles con este item', 'error');
+        return;
+    }
+    
+    modalContent.innerHTML = `
+        <h2>Equipar: ${item.name}</h2>
+        <p style="color: ${item.rarityInfo.color};">${item.rarityInfo.name} • ${item.type === 'weapon' ? 'Arma' : item.type === 'armor' ? 'Armadura' : 'Accesorio'}</p>
+        <div style="max-height: 400px; overflow-y: auto; margin-top: 1rem;">
+            ${availableFighters.map(fighter => `
+                <div class="fighter-select-card" onclick="confirmEquipItem('${item.id}', '${fighter.id}')" style="cursor: pointer; padding: 1rem; border: 2px solid var(--color-border); border-radius: 8px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 1rem;">
+                    <span style="font-size: 2rem;">${FIGHTER_AVATARS[fighter.gender][fighter.class]}</span>
+                    <div style="flex: 1;">
+                        <p style="font-weight: bold; margin: 0;">${fighter.name}</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin: 0;">
+                            ${CLASSES[fighter.class].name} • Nivel ${fighter.level}
+                        </p>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+/**
+ * Confirma y equipa el item al peleador seleccionado
+ * @param {string} itemId - ID del item
+ * @param {string} fighterId - ID del peleador
+ */
+function confirmEquipItem(itemId, fighterId) {
+    const item = gameState.inventory.find(i => i.id === itemId);
+    const fighter = gameState.fighters.find(f => f.id === fighterId);
+    
+    if (!item || !fighter) return;
+    
+    // Inicializar equipment si no existe (para peleadores antiguos)
+    if (!fighter.equipment) {
+        fighter.equipment = {
+            helmet: null,
+            chest: null,
+            legs: null,
+            gloves: null,
+            boots: null,
+            belt: null,
+            necklace: null,
+            rune: null,
+            bracelet: [],
+            earring: [],
+            ring: [],
+            mainhand: null,
+            offhand: null
+        };
+    }
+    
+    // Determinar el slot según el tipo de item
+    let slot = null;
+    let isMultiSlot = false;
+    
+    if (item.type === 'armor') {
+        slot = item.slot; // helmet, chest, legs, etc.
+    } else if (item.type === 'accessory') {
+        slot = item.slot; // necklace, rune, bracelet, etc.
+        // Los brazaletes, aretes y anillos tienen múltiples slots
+        if (['bracelet', 'earring', 'ring'].includes(slot)) {
+            isMultiSlot = true;
+        }
+    } else if (item.type === 'weapon') {
+        // Lógica para armas
+        slot = equipWeapon(fighter, item);
+        if (!slot) {
+            showToast('No hay espacio para equipar esta arma', 'error');
+            return;
+        }
+    }
+    
+    if (!slot) {
+        showToast('Error al equipar item', 'error');
+        return;
+    }
+    
+    // Equipar item
+    if (isMultiSlot) {
+        // Para items con múltiples slots (brazalete, arete, anillo)
+        const maxSlots = EQUIPMENT_SLOTS[slot].max;
+        if (fighter.equipment[slot].length >= maxSlots) {
+            showToast(`Ya tienes ${maxSlots} ${EQUIPMENT_SLOTS[slot].name}(s) equipado(s)`, 'error');
+            return;
+        }
+        fighter.equipment[slot].push(item.id);
+    } else {
+        // Para slots únicos
+        const oldItem = fighter.equipment[slot];
+        if (oldItem) {
+            // Devolver item anterior al inventario
+            const oldItemData = gameState.inventory.find(i => i.id === oldItem);
+            if (oldItemData) {
+                oldItemData.equipped = false;
+                oldItemData.equippedBy = null;
+            }
+        }
+        fighter.equipment[slot] = item.id;
+    }
+    
+    // Marcar item como equipado
+    item.equipped = true;
+    item.equippedBy = fighterId;
+    
+    saveGame();
+    showToast(`${item.name} equipado a ${fighter.name}`, 'success');
+    
+    closeModal();
+    
+    // Actualizar UI si estamos en la pantalla de inventario
+    if (document.getElementById('screen-inventory').classList.contains('active')) {
+        initInventoryScreen();
+    }
+    
+    // Si estamos viendo el detalle del peleador, actualizar
+    if (document.getElementById('screen-fighter-detail').classList.contains('active')) {
+        const currentFighter = gameState.fighters.find(f => f.id === fighterId);
+        if (currentFighter) {
+            openFighterDetail(currentFighter.id);
+        }
+    }
+}
+
+/**
+ * Equipa un arma al peleador según las reglas de la clase
+ * @param {Object} fighter - Peleador
+ * @param {Object} item - Item de arma
+ * @returns {string|null} Slot donde se equipó o null si no se pudo
+ */
+function equipWeapon(fighter, item) {
+    const itemName = item.subtype.toLowerCase();
+    
+    // Asesino, Hechicero, Invocador: pueden portar 2 dagas, o 1 espada + 1 daga, o 2 espadas
+    if (['asesino', 'hechicero', 'invocador'].includes(fighter.class)) {
+        if (itemName.includes('daga') || itemName.includes('espada')) {
+            // Intentar mano principal primero
+            if (!fighter.equipment.mainhand) {
+                return 'mainhand';
+            } else if (!fighter.equipment.offhand) {
+                return 'offhand';
+            }
+        } else {
+            // Otras armas solo en mano principal
+            return 'mainhand';
+        }
+    } else {
+        // Otras clases: solo mano principal
+        return 'mainhand';
+    }
+    
+    return null;
+}
+
+/**
+ * Desequipa un item del peleador
+ * @param {string} fighterId - ID del peleador
+ * @param {string} slot - Slot del que desequipar
+ * @param {number} index - Índice (para slots múltiples)
+ */
+function unequipItem(fighterId, slot, index = null) {
+    const fighter = gameState.fighters.find(f => f.id === fighterId);
+    if (!fighter || !fighter.equipment) return;
+    
+    let itemId = null;
+    
+    // Obtener ID del item
+    if (index !== null && Array.isArray(fighter.equipment[slot])) {
+        // Slot múltiple (brazalete, arete, anillo)
+        itemId = fighter.equipment[slot][index];
+        fighter.equipment[slot].splice(index, 1);
+    } else {
+        // Slot único
+        itemId = fighter.equipment[slot];
+        fighter.equipment[slot] = null;
+    }
+    
+    if (!itemId) return;
+    
+    // Marcar item como no equipado
+    const item = gameState.inventory.find(i => i.id === itemId);
+    if (item) {
+        item.equipped = false;
+        item.equippedBy = null;
+    }
+    
+    saveGame();
+    showToast('Item desequipado', 'success');
+    
+    // Actualizar UI
+    openFighterDetail(fighterId);
+}
+
+/**
+ * Calcula los stats totales del peleador incluyendo equipamiento
+ * @param {Object} fighter - Peleador
+ * @returns {Object} Stats totales
+ */
+function calculateTotalStats(fighter) {
+    const baseStats = { ...fighter.stats };
+    
+    if (!fighter.equipment) {
+        return baseStats;
+    }
+    
+    // Sumar stats de todos los items equipados
+    Object.keys(fighter.equipment).forEach(slot => {
+        if (Array.isArray(fighter.equipment[slot])) {
+            // Slots múltiples
+            fighter.equipment[slot].forEach(itemId => {
+                const item = gameState.inventory.find(i => i.id === itemId);
+                if (item && item.stats) {
+                    baseStats.str += item.stats.str || 0;
+                    baseStats.agi += item.stats.agi || 0;
+                    baseStats.res += item.stats.res || 0;
+                    baseStats.int += item.stats.int || 0;
+                }
+            });
+        } else if (fighter.equipment[slot]) {
+            // Slot único
+            const item = gameState.inventory.find(i => i.id === fighter.equipment[slot]);
+            if (item && item.stats) {
+                baseStats.str += item.stats.str || 0;
+                baseStats.agi += item.stats.agi || 0;
+                baseStats.res += item.stats.res || 0;
+                baseStats.int += item.stats.int || 0;
+            }
+        }
+    });
+    
+    return baseStats;
 }
 
 /**
@@ -3709,3 +4162,5 @@ window.confirmRemoveFighter = confirmRemoveFighter;
 window.startArenaFight = startArenaFight;
 window.generateAndStoreOpponents = generateAndStoreOpponents;
 window.equipItem = equipItem;
+window.confirmEquipItem = confirmEquipItem;
+window.unequipItem = unequipItem;
