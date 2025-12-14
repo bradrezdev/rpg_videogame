@@ -4175,6 +4175,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Intentar cargar partida
     const hasGame = loadGame();
     
+    // === Importar partida ===
+    const importInput = document.getElementById('import-save-input');
+    if (importInput) {
+        importInput.addEventListener('change', importSaveGame);
+    }
+    
     if (hasGame && gameState.player.name) {
         // Ir al menú principal
         navigateTo('screen-main-menu');
@@ -4190,7 +4196,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('btn-load-game').addEventListener('click', () => {
         // Abrir diálogo de selección de archivo
-        document.getElementById('import-save-input').click();
+        const input = document.getElementById('import-save-input');
+        if (input) {
+            input.click();
+        } else {
+            console.error('Input file no encontrado');
+            showToast('Error al abrir selector de archivos', 'error');
+        }
     });
     
     // === Pantalla Crear Cuenta ===
@@ -4281,9 +4293,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         );
     });
-    
-    // === Importar partida ===
-    document.getElementById('import-save-input').addEventListener('change', importSaveGame);
     
     // === Modal ===
     document.getElementById('modal-overlay').addEventListener('click', (e) => {
