@@ -697,6 +697,9 @@
                     
                     <div class="setting-group">
                         <h3>Cuenta</h3>
+                        <button class="btn-primary" id="btn-export-save" style="margin-bottom: 1rem;">
+                            💾 Exportar Partida
+                        </button>
                         <button class="btn-danger" id="btn-reset-game">
                             🗑️ Reiniciar Juego
                         </button>
@@ -718,6 +721,9 @@
              NOTIFICACIONES / TOASTS
              ======================================== -->
         <div id="toast-container"></div>
+        
+        <!-- Input oculto para cargar partida -->
+        <input type="file" id="import-save-input" accept=".json" style="display: none;">
         
     </div>
     

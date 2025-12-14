@@ -653,6 +653,135 @@ function resetGame() {
 }
 
 /**
+ * Exporta los datos de la partida como archivo JSON
+ */
+function exportSaveGame() {
+    try {
+        // Obtener datos del juego
+        const saveData = {
+            version: '1.0.0',
+            timestamp: new Date().toISOString(),
+            gameState: gameState
+        };
+        
+        // Convertir a JSON
+        const jsonString = JSON.stringify(saveData, null, 2);
+        
+        // Crear blob y descargar
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        // Nombre del archivo con fecha y nombre del jugador
+        const playerName = gameState.player.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const date = new Date().toISOString().split('T')[0];
+        link.download = `batalla_heroes_${playerName}_${date}.json`;
+        
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showToast('Partida exportada exitosamente', 'success');
+    } catch (error) {
+        console.error('Error al exportar partida:', error);
+        showToast('Error al exportar la partida', 'error');
+    }
+}
+
+/**
+ * Importa los datos de una partida desde un archivo JSON
+ * @param {Event} event - Evento del input file
+ */
+function importSaveGame(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Verificar que sea un archivo JSON
+    if (!file.name.endsWith('.json')) {
+        showToast('El archivo debe ser formato JSON', 'error');
+        event.target.value = ''; // Resetear input
+        return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        try {
+            const saveData = JSON.parse(e.target.result);
+            
+            // Validar estructura del archivo
+            if (!saveData.gameState || !saveData.gameState.player) {
+                showToast('Archivo de partida inválido', 'error');
+                return;
+            }
+            
+            // Confirmar importación
+            showModal(
+                'Cargar Partida',
+                `<p>¿Deseas cargar la partida de <strong>${saveData.gameState.player.name}</strong>?</p>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 0.5rem;">
+                    Nivel ${saveData.gameState.player.level} • ${saveData.gameState.fighters.length} peleadores
+                </p>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">
+                    Tu partida actual será reemplazada
+                </p>`,
+                [
+                    { text: 'Cancelar', action: 'closeModal()' },
+                    { 
+                        text: 'Cargar', 
+                        class: 'btn-primary', 
+                        action: `confirmImportSave('${encodeURIComponent(JSON.stringify(saveData.gameState))}')` 
+                    }
+                ]
+            );
+            
+        } catch (error) {
+            console.error('Error al leer el archivo:', error);
+            showToast('Error al leer el archivo de partida', 'error');
+        }
+        
+        // Resetear input para permitir seleccionar el mismo archivo nuevamente
+        event.target.value = '';
+    };
+    
+    reader.onerror = () => {
+        showToast('Error al leer el archivo', 'error');
+        event.target.value = '';
+    };
+    
+    reader.readAsText(file);
+}
+
+/**
+ * Confirma la importación de la partida
+ * @param {string} encodedData - Datos codificados del gameState
+ */
+function confirmImportSave(encodedData) {
+    try {
+        const newGameState = JSON.parse(decodeURIComponent(encodedData));
+        
+        // Reemplazar gameState
+        Object.assign(gameState, newGameState);
+        
+        // Guardar en localStorage
+        saveGame();
+        
+        // Navegar al menú principal
+        closeModal();
+        navigateTo('screen-main-menu');
+        initMainMenu();
+        
+        showToast('¡Partida cargada exitosamente!', 'success');
+    } catch (error) {
+        console.error('Error al importar partida:', error);
+        showToast('Error al importar la partida', 'error');
+        closeModal();
+    }
+}
+
+/**
  * Obtiene el número de slots de equipo según el nivel de cuenta
  * @param {number} level - Nivel de cuenta
  * @returns {number} Número de slots disponibles
@@ -4060,12 +4189,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     document.getElementById('btn-load-game').addEventListener('click', () => {
-        if (loadGame() && gameState.player.name) {
-            navigateTo('screen-main-menu');
-            showToast('Partida cargada', 'success');
-        } else {
-            showToast('No hay partida guardada', 'error');
-        }
+        // Abrir diálogo de selección de archivo
+        document.getElementById('import-save-input').click();
     });
     
     // === Pantalla Crear Cuenta ===
@@ -4144,6 +4269,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-remove-from-team').addEventListener('click', removeCurrentFromTeam);
     
     // === Opciones ===
+    document.getElementById('btn-export-save').addEventListener('click', exportSaveGame);
+    
     document.getElementById('btn-reset-game').addEventListener('click', () => {
         showModal(
             'Reiniciar Juego',
@@ -4154,6 +4281,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         );
     });
+    
+    // === Importar partida ===
+    document.getElementById('import-save-input').addEventListener('change', importSaveGame);
     
     // === Modal ===
     document.getElementById('modal-overlay').addEventListener('click', (e) => {
@@ -4185,3 +4315,4 @@ window.generateAndStoreOpponents = generateAndStoreOpponents;
 window.equipItem = equipItem;
 window.confirmEquipItem = confirmEquipItem;
 window.unequipItem = unequipItem;
+window.confirmImportSave = confirmImportSave;
