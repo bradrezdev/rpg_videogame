@@ -2181,10 +2181,11 @@ function initInventoryScreen() {
         return b.zone - a.zone;
     });
     
-    inventoryGrid.innerHTML = filteredItems.map(item => {
+    inventoryGrid.innerHTML = '';
+    filteredItems.forEach(item => {
         const card = createItemCard(item);
-        return card.outerHTML;
-    }).join('');
+        inventoryGrid.appendChild(card);
+    });
     
     // Configurar event listeners para filtros si no están configurados
     setupInventoryFilters();
@@ -2886,7 +2887,7 @@ function startArenaFight(opponentIndex) {
 
 let battleState = null;
 let battleInterval = null;
-let battleSpeed = 1;
+let battleSpeed = 2.5;
 
 /**
  * Inicia una batalla
@@ -4125,7 +4126,7 @@ function checkAccountLevelUp() {
  * Cambia la velocidad de batalla
  */
 function toggleBattleSpeed() {
-    battleSpeed = battleSpeed === 1 ? 2 : (battleSpeed === 2 ? 3 : 1);
+    battleSpeed = battleSpeed === 2.5 ? 5 : (battleSpeed === 5 ? 7.5 : 2.5);
     document.getElementById('btn-speed').textContent = `⏩ Velocidad: ${battleSpeed}x`;
     
     // Reiniciar intervalo con nueva velocidad
